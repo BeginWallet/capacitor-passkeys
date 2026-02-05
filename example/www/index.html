@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Passkeys Example</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #10b981;
+      --error: #ef4444;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .card-icon.support { background: rgba(99, 102, 241, 0.2); }
+    .card-icon.register { background: rgba(16, 185, 129, 0.2); }
+    .card-icon.auth { background: rgba(59, 130, 246, 0.2); }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .card-description {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #475569;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    .status.success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .status.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+    }
+
+    .status.info {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+    }
+
+    .result-box {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      max-height: 300px;
+      overflow: auto;
+    }
+
+    .result-box h4 {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .result-box pre {
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-muted);
+    }
+
+    .server-config {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .server-config h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+
+    .toggle-label {
+      font-size: 14px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      background: var(--border);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle.active {
+      background: var(--primary);
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      background: white;
+      border-radius: 12px;
+      transition: transform 0.2s;
+    }
+
+    .toggle.active::after {
+      transform: translateX(20px);
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔐 Passkeys</h1>
+      <p class="subtitle">Capacitor Passkeys Plugin Demo</p>
+    </header>
+
+    <!-- Check Support -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon support">🔍</div>
+        <span class="card-title">Check Support</span>
+      </div>
+      <p class="card-description">
+        Verify if passkeys are supported on this device.
+      </p>
+      <button id="checkSupportBtn" class="btn-secondary">
+        Check Passkey Support
+      </button>
+      <div id="supportResult"></div>
+    </div>
+
+    <!-- Register Passkey -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon register">✨</div>
+        <span class="card-title">Register</span>
+      </div>
+      <p class="card-description">
+        Create a new passkey for your account. This will prompt for biometric authentication.
+      </p>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter username or email">
+      </div>
+      <button id="registerBtn" class="btn-primary">
+        Create Passkey
+      </button>
+      <div id="registerResult"></div>
+    </div>
+
+    <!-- Authenticate -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon auth">🔑</div>
+        <span class="card-title">Authenticate</span>
+      </div>
+      <p class="card-description">
+        Sign in with an existing passkey. Select from available credentials.
+      </p>
+      <button id="authBtn" class="btn-primary">
+        Sign In with Passkey
+      </button>
+      <div id="authResult"></div>
+    </div>
+
+    <!-- Server Configuration -->
+    <div class="server-config">
+      <h3>⚙️ Configuration</h3>
+      <div class="toggle-row">
+        <span class="toggle-label">Use server for challenges</span>
+        <div id="serverToggle" class="toggle" onclick="toggleServer()"></div>
+      </div>
+      <div class="form-group" style="margin-top: 12px;">
+        <label for="serverUrl">Server URL</label>
+        <input type="url" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+      </div>
+      <div class="form-group">
+        <label for="rpId">Relying Party ID (domain)</label>
+        <input type="text" id="rpId" value="localhost" placeholder="localhost or your-domain.com">
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacitor and Plugin -->
+  <script type="module">
+    import { Capacitor } from 'https://esm.sh/@capacitor/core@6';
+    
+    // In production, import from the bundled plugin
+    // For now, we'll use dynamic import with fallback
+    let Passkeys;
+    
+    async function initPlugin() {
+      try {
+        // Try to load from local plugin (when properly built)
+        const module = await import('@beginwallet/capacitor-passkeys');
+        Passkeys = module.Passkeys;
+      } catch (e) {
+        console.log('Using web fallback for Passkeys plugin');
+        // Fallback implementation using WebAuthn API directly
+        Passkeys = {
+          async isSupported() {
+            const supported = window.PublicKeyCredential !== undefined;
+            let platformAuthenticatorAvailable = false;
+            
+            if (supported && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+              platformAuthenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            }
+            
+            return {
+              supported,
+              details: {
+                osVersion: navigator.userAgent,
+                platformAuthenticatorAvailable
+              }
+            };
+          },
+          
+          async create(options) {
+            const publicKey = {
+              challenge: base64UrlToBuffer(options.challenge),
+              rp: options.rp,
+              user: {
+                id: base64UrlToBuffer(options.user.id),
+                name: options.user.name,
+                displayName: options.user.displayName
+              },
+              pubKeyCredParams: options.pubKeyCredParams || [
+                { type: 'public-key', alg: -7 },
+                { type: 'public-key', alg: -257 }
+              ],
+              timeout: options.timeout || 300000,
+              authenticatorSelection: options.authenticatorSelection || {
+                authenticatorAttachment: 'platform',
+                residentKey: 'required',
+                userVerification: 'required'
+              },
+              attestation: options.attestation || 'none'
+            };
+            
+            const credential = await navigator.credentials.create({ publicKey });
+            
+            return {
+              id: credential.id,
+              rawId: bufferToBase64Url(credential.rawId),
+              type: credential.type,
+              response: {
+                clientDataJSON: bufferToBase64Url(credential.response.clientDataJSON),
+                attestationObject: bufferToBase64Url(credential.response.attestationObject)
+              },
+              authenticatorAttachment: credential.authenticatorAttachment
+            };
+          },
+          
+          async get(options) {
+            const publicKey = {
+              challenge: base64UrlToBuffer(options.challenge),
+              rpId: options.rpId,
+              timeout: options.timeout || 300000,
+              userVerification: options.userVerification || 'required'
+            };
+            
+            if (options.allowCredentials) {
+              publicKey.allowCredentials = options.allowCredentials.map(cred => ({
+                type: cred.type,
+                id: base64UrlToBuffer(cred.id),
+                transports: cred.transports
+              }));
+            }
+            
+            const assertion = await navigator.credentials.get({ publicKey });
+            
+            return {
+              id: assertion.id,
+              rawId: bufferToBase64Url(assertion.rawId),
+              type: assertion.type,
+              response: {
+                clientDataJSON: bufferToBase64Url(assertion.response.clientDataJSON),
+                authenticatorData: bufferToBase64Url(assertion.response.authenticatorData),
+                signature: bufferToBase64Url(assertion.response.signature),
+                userHandle: assertion.response.userHandle ? bufferToBase64Url(assertion.response.userHandle) : undefined
+              }
+            };
+          }
+        };
+      }
+    }
+
+    // Base64URL utilities
+    function bufferToBase64Url(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let str = '';
+      for (const byte of bytes) {
+        str += String.fromCharCode(byte);
+      }
+      return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    function base64UrlToBuffer(base64url) {
+      const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = '='.repeat((4 - base64.length % 4) % 4);
+      const binary = atob(base64 + padding);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+
+    function generateRandomBuffer(length) {
+      const buffer = new Uint8Array(length);
+      crypto.getRandomValues(buffer);
+      return bufferToBase64Url(buffer);
+    }
+
+    function generateUserId(username) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(username + Date.now());
+      return bufferToBase64Url(data);
+    }
+
+    // UI Helpers
+    function showResult(elementId, type, message, data = null) {
+      const container = document.getElementById(elementId);
+      let html = `<div class="status ${type}">${message}</div>`;
+      
+      if (data) {
+        html += `
+          <div class="result-box">
+            <h4>Response</h4>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          </div>
+        `;
+      }
+      
+      container.innerHTML = html;
+    }
+
+    function setLoading(buttonId, loading) {
+      const btn = document.getElementById(buttonId);
+      if (loading) {
+        btn.disabled = true;
+        btn.dataset.originalText = btn.innerHTML;
+        btn.innerHTML = '<div class="spinner"></div> Processing...';
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = btn.dataset.originalText;
+      }
+    }
+
+    // Configuration
+    let useServer = false;
+    
+    window.toggleServer = function() {
+      useServer = !useServer;
+      document.getElementById('serverToggle').classList.toggle('active', useServer);
+    };
+
+    function getConfig() {
+      return {
+        serverUrl: document.getElementById('serverUrl').value,
+        rpId: document.getElementById('rpId').value,
+        rpName: 'Passkeys Example'
+      };
+    }
+
+    // Server communication
+    async function fetchFromServer(endpoint, body = {}) {
+      const config = getConfig();
+      const response = await fetch(`${config.serverUrl}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Server error' }));
+        throw new Error(error.error || 'Server request failed');
+      }
+      
+      return response.json();
+    }
+
+    // Check Support
+    document.getElementById('checkSupportBtn').addEventListener('click', async () => {
+      setLoading('checkSupportBtn', true);
+      
+      try {
+        const result = await Passkeys.isSupported();
+        
+        if (result.supported) {
+          showResult('supportResult', 'success', '✓ Passkeys are supported!', result);
+        } else {
+          showResult('supportResult', 'error', '✗ Passkeys are not supported', result);
+        }
+      } catch (error) {
+        showResult('supportResult', 'error', `Error: ${error.message}`);
+      } finally {
+        setLoading('checkSupportBtn', false);
+      }
+    });
+
+    // Register
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+      const username = document.getElementById('username').value.trim();
+      
+      if (!username) {
+        showResult('registerResult', 'error', 'Please enter a username');
+        return;
+      }
+      
+      setLoading('registerBtn', true);
+      
+      try {
+        const config = getConfig();
+        let createOptions;
+        
+        if (useServer) {
+          // Get challenge from server
+          const serverOptions = await fetchFromServer('/register/start', { username });
+          createOptions = serverOptions;
+        } else {
+          // Use mock challenge
+          createOptions = {
+            challenge: generateRandomBuffer(32),
+            rp: {
+              id: config.rpId,
+              name: config.rpName
+            },
+            user: {
+              id: generateUserId(username),
+              name: username,
+              displayName: username
+            },
+            pubKeyCredParams: [
+              { type: 'public-key', alg: -7 },
+              { type: 'public-key', alg: -257 }
+            ],
+            authenticatorSelection: {
+              authenticatorAttachment: 'platform',
+              residentKey: 'required',
+              userVerification: 'required'
+            },
+            attestation: 'none'
+          };
+        }
+        
+        const credential = await Passkeys.create(createOptions);
+        
+        if (useServer) {
+          // Verify with server
+          const verification = await fetchFromServer('/register/finish', {
+            username,
+            credential
+          });
+          showResult('registerResult', 'success', '✓ Passkey registered and verified!', {
+            credential,
+            verification
+          });
+        } else {
+          showResult('registerResult', 'success', '✓ Passkey created successfully!', credential);
+        }
+        
+        // Store credential ID for later use
+        localStorage.setItem('lastCredentialId', credential.id);
+        localStorage.setItem('lastUsername', username);
+        
+      } catch (error) {
+        const errorCode = error.code || 'unknown';
+        showResult('registerResult', 'error', `Registration failed: ${error.message} (${errorCode})`);
+      } finally {
+        setLoading('registerBtn', false);
+      }
+    });
+
+    // Authenticate
+    document.getElementById('authBtn').addEventListener('click', async () => {
+      setLoading('authBtn', true);
+      
+      try {
+        const config = getConfig();
+        let getOptions;
+        
+        if (useServer) {
+          // Get challenge from server
+          const serverOptions = await fetchFromServer('/auth/start', {});
+          getOptions = serverOptions;
+        } else {
+          // Use mock challenge
+          getOptions = {
+            challenge: generateRandomBuffer(32),
+            rpId: config.rpId,
+            userVerification: 'required'
+            // allowCredentials is empty to allow any discoverable credential
+          };
+        }
+        
+        const assertion = await Passkeys.get(getOptions);
+        
+        if (useServer) {
+          // Verify with server
+          const verification = await fetchFromServer('/auth/finish', {
+            credential: assertion
+          });
+          showResult('authResult', 'success', `✓ Welcome back, ${verification.username}!`, {
+            assertion,
+            verification
+          });
+        } else {
+          showResult('authResult', 'success', '✓ Authentication successful!', assertion);
+        }
+        
+      } catch (error) {
+        const errorCode = error.code || 'unknown';
+        showResult('authResult', 'error', `Authentication failed: ${error.message} (${errorCode})`);
+      } finally {
+        setLoading('authBtn', false);
+      }
+    });
+
+    // Initialize
+    await initPlugin();
+    console.log('Passkeys Example App initialized');
+    console.log('Platform:', Capacitor.getPlatform());
+  </script>
+</body>
+</html>

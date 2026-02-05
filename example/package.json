@@ -1,0 +1,33 @@
+{
+  "name": "passkeys-example",
+  "version": "1.0.0",
+  "description": "Example app demonstrating @beginwallet/capacitor-passkeys plugin",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx serve www -l 5173",
+    "build": "echo 'Static app - no build step needed' && cp -r www dist",
+    "ios": "npx cap open ios",
+    "android": "npx cap open android",
+    "sync": "npx cap sync",
+    "sync:ios": "npx cap sync ios",
+    "sync:android": "npx cap sync android"
+  },
+  "keywords": [
+    "capacitor",
+    "passkeys",
+    "webauthn",
+    "example"
+  ],
+  "author": "Begin",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@beginwallet/capacitor-passkeys": "file:.."
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/android": "^6.0.0",
+    "serve": "^14.2.0"
+  }
+}
