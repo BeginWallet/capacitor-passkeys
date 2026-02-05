@@ -126,6 +126,10 @@ public class PasskeysPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     /// Authenticate with an existing passkey
+    ///
+    /// Note on timeouts: iOS's ASAuthorizationController does not expose a direct timeout
+    /// configuration. The system manages timeouts internally. The `timeout` parameter
+    /// is accepted for API compatibility but is not enforced on iOS.
     @objc func get(_ call: CAPPluginCall) {
         // Extract and validate required parameters
         guard let challengeB64 = call.getString("challenge") else {
@@ -322,18 +326,29 @@ extension PasskeysPlugin: ASAuthorizationControllerPresentationContextProviding 
 
     public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         // Return the main window for presenting the authorization UI
-        // Use the webView's window if available, fall back to key window
+        // Try bridge's webView window first, then fall back to key window
         if let window = self.bridge?.webView?.window {
             return window
         }
-        
-        // Fallback: get the key window from the scene
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+
+        // Fallback: find the key window from connected scenes (iOS 13+)
+        if let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }),
            let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow }) {
             return keyWindow
         }
-        
-        // Last resort fallback
+
+        // Last resort: return any available window or create a new one
+        // This should rarely happen in a properly configured Capacitor app
+        if let anyWindow = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first {
+            return anyWindow
+        }
+
+        // Final fallback - create empty window (authorization may not present correctly)
         return UIWindow()
     }
 }
