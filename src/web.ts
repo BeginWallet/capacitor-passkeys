@@ -1,13 +1,13 @@
 import { WebPlugin } from '@capacitor/core';
 
-import type {
-  PasskeysPlugin,
-  CreatePasskeyOptions,
-  CreatePasskeyResult,
-  GetPasskeyOptions,
-  GetPasskeyResult,
-  IsSupportedResult,
+import {
   PasskeyErrorCode,
+  type PasskeysPlugin,
+  type CreatePasskeyOptions,
+  type CreatePasskeyResult,
+  type GetPasskeyOptions,
+  type GetPasskeyResult,
+  type IsSupportedResult,
 } from './definitions';
 
 /**
@@ -54,7 +54,7 @@ export class PasskeysWeb extends WebPlugin implements PasskeysPlugin {
       })) as PublicKeyCredential | null;
 
       if (!credential) {
-        throw this.createError('notSupported', 'Failed to create credential');
+        throw this.createError(PasskeyErrorCode.NotSupported, 'Failed to create credential');
       }
 
       return this.formatCreateResult(credential);
@@ -75,7 +75,7 @@ export class PasskeysWeb extends WebPlugin implements PasskeysPlugin {
       })) as PublicKeyCredential | null;
 
       if (!credential) {
-        throw this.createError('noCredentials', 'No credential selected');
+        throw this.createError(PasskeyErrorCode.NoCredentials, 'No credential selected');
       }
 
       return this.formatGetResult(credential);
@@ -199,28 +199,28 @@ export class PasskeysWeb extends WebPlugin implements PasskeysPlugin {
         case 'AbortError':
         case 'NotAllowedError':
           // User cancelled or denied
-          return this.createError('cancelled', 'User cancelled the operation');
+          return this.createError(PasskeyErrorCode.Cancelled, 'User cancelled the operation');
 
         case 'SecurityError':
-          return this.createError('securityError', error.message);
+          return this.createError(PasskeyErrorCode.SecurityError, error.message);
 
         case 'InvalidStateError':
           // Credential already exists
-          return this.createError('invalidRequest', 'Credential already exists for this user');
+          return this.createError(PasskeyErrorCode.InvalidRequest, 'Credential already exists for this user');
 
         case 'NotSupportedError':
-          return this.createError('notSupported', 'WebAuthn not supported');
+          return this.createError(PasskeyErrorCode.NotSupported, 'WebAuthn not supported');
 
         default:
-          return this.createError('unknownError', error.message);
+          return this.createError(PasskeyErrorCode.UnknownError, error.message);
       }
     }
 
     if (error instanceof Error) {
-      return this.createError('unknownError', error.message);
+      return this.createError(PasskeyErrorCode.UnknownError, error.message);
     }
 
-    return this.createError('unknownError', 'Unknown error occurred');
+    return this.createError(PasskeyErrorCode.UnknownError, 'Unknown error occurred');
   }
 
   /**
