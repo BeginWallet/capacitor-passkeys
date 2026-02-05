@@ -368,107 +368,11 @@
 
   <!-- Capacitor and Plugin -->
   <script type="module">
-    import { Capacitor } from 'https://esm.sh/@capacitor/core@6';
+    // Import from the actual plugin (Vite resolves this)
+    import { Passkeys } from '@beginwallet/capacitor-passkeys';
     
-    // In production, import from the bundled plugin
-    // For now, we'll use dynamic import with fallback
-    let Passkeys;
-    
-    async function initPlugin() {
-      try {
-        // Try to load from local plugin (when properly built)
-        const module = await import('@beginwallet/capacitor-passkeys');
-        Passkeys = module.Passkeys;
-      } catch (e) {
-        console.log('Using web fallback for Passkeys plugin');
-        // Fallback implementation using WebAuthn API directly
-        Passkeys = {
-          async isSupported() {
-            const supported = window.PublicKeyCredential !== undefined;
-            let platformAuthenticatorAvailable = false;
-            
-            if (supported && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
-              platformAuthenticatorAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-            }
-            
-            return {
-              supported,
-              details: {
-                osVersion: navigator.userAgent,
-                platformAuthenticatorAvailable
-              }
-            };
-          },
-          
-          async create(options) {
-            const publicKey = {
-              challenge: base64UrlToBuffer(options.challenge),
-              rp: options.rp,
-              user: {
-                id: base64UrlToBuffer(options.user.id),
-                name: options.user.name,
-                displayName: options.user.displayName
-              },
-              pubKeyCredParams: options.pubKeyCredParams || [
-                { type: 'public-key', alg: -7 },
-                { type: 'public-key', alg: -257 }
-              ],
-              timeout: options.timeout || 300000,
-              authenticatorSelection: options.authenticatorSelection || {
-                authenticatorAttachment: 'platform',
-                residentKey: 'required',
-                userVerification: 'required'
-              },
-              attestation: options.attestation || 'none'
-            };
-            
-            const credential = await navigator.credentials.create({ publicKey });
-            
-            return {
-              id: credential.id,
-              rawId: bufferToBase64Url(credential.rawId),
-              type: credential.type,
-              response: {
-                clientDataJSON: bufferToBase64Url(credential.response.clientDataJSON),
-                attestationObject: bufferToBase64Url(credential.response.attestationObject)
-              },
-              authenticatorAttachment: credential.authenticatorAttachment
-            };
-          },
-          
-          async get(options) {
-            const publicKey = {
-              challenge: base64UrlToBuffer(options.challenge),
-              rpId: options.rpId,
-              timeout: options.timeout || 300000,
-              userVerification: options.userVerification || 'required'
-            };
-            
-            if (options.allowCredentials) {
-              publicKey.allowCredentials = options.allowCredentials.map(cred => ({
-                type: cred.type,
-                id: base64UrlToBuffer(cred.id),
-                transports: cred.transports
-              }));
-            }
-            
-            const assertion = await navigator.credentials.get({ publicKey });
-            
-            return {
-              id: assertion.id,
-              rawId: bufferToBase64Url(assertion.rawId),
-              type: assertion.type,
-              response: {
-                clientDataJSON: bufferToBase64Url(assertion.response.clientDataJSON),
-                authenticatorData: bufferToBase64Url(assertion.response.authenticatorData),
-                signature: bufferToBase64Url(assertion.response.signature),
-                userHandle: assertion.response.userHandle ? bufferToBase64Url(assertion.response.userHandle) : undefined
-              }
-            };
-          }
-        };
-      }
-    }
+    // Make Passkeys available globally for debugging
+    window.Passkeys = Passkeys;
 
     // Base64URL utilities
     function bufferToBase64Url(buffer) {
@@ -703,9 +607,8 @@
     });
 
     // Initialize
-    await initPlugin();
     console.log('Passkeys Example App initialized');
-    console.log('Platform:', Capacitor.getPlatform());
+    console.log('Passkeys plugin loaded:', !!Passkeys);
   </script>
 </body>
 </html>
