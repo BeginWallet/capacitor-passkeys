@@ -1,4 +1,4 @@
-# Contributing to @anthropic/capacitor-passkeys
+# Contributing to capacitor-passkeys
 
 Thank you for your interest in contributing!
 
@@ -33,7 +33,7 @@ capacitor-passkeys/
 │       ├── PasskeysPlugin.swift
 │       └── PasskeysPlugin.m
 ├── android/                 # Android implementation
-│   └── src/main/kotlin/io/anthropic/passkeys/
+│   └── src/main/kotlin/io/beginwallet/passkeys/
 │       └── PasskeysPlugin.kt
 └── README.md
 ```
@@ -53,7 +53,7 @@ capacitor-passkeys/
 
 ### Android (Kotlin)
 
-1. Edit `android/src/main/kotlin/io/anthropic/passkeys/PasskeysPlugin.kt`
+1. Edit `android/src/main/kotlin/io/beginwallet/passkeys/PasskeysPlugin.kt`
 2. Run `npm run verify:android` to build
 3. Test on a real device with Google Play Services
 

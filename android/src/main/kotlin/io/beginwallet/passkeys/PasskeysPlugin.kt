@@ -1,4 +1,4 @@
-package io.anthropic.passkeys
+package io.beginwallet.passkeys
 
 import android.os.Build
 import android.util.Base64

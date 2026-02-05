@@ -1,7 +1,7 @@
 # Capacitor Passkeys Plugin ProGuard Rules
 
 # Keep Capacitor plugin
--keep class io.anthropic.passkeys.** { *; }
+-keep class io.beginwallet.passkeys.** { *; }
 
 # Keep Credential Manager classes
 -keep class androidx.credentials.** { *; }

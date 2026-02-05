@@ -162,7 +162,7 @@ async function registerPasskey(user: { id: string; email: string; name: string }
 ### Authenticate with a Passkey
 
 ```typescript
-import { Passkeys, PasskeyErrorCode } from '@anthropic/capacitor-passkeys';
+import { Passkeys, PasskeyErrorCode } from 'capacitor-passkeys';
 
 async function authenticateWithPasskey() {
   try {
@@ -262,7 +262,7 @@ All methods may throw errors with the following codes:
 | `unknownError` | Unknown error occurred |
 
 ```typescript
-import { PasskeyErrorCode } from '@anthropic/capacitor-passkeys';
+import { PasskeyErrorCode } from 'capacitor-passkeys';
 
 try {
   await Passkeys.create(options);
