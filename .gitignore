@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# iOS
+ios/Pods/
+ios/.build/
+ios/Plugin.xcworkspace/
+ios/DerivedData/
+*.xcuserstate
+
+# Android
+android/.gradle/
+android/build/
+android/local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+
+# Misc
+*.tgz
