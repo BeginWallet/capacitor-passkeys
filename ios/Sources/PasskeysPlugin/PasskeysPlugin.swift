@@ -44,40 +44,15 @@ public class PasskeysPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     /// Create a new passkey (registration)
+    ///
+    /// Note on timeouts: iOS's ASAuthorizationController does not expose a direct timeout
+    /// configuration. The system manages timeouts internally based on user interaction.
+    /// The `timeout` parameter from options is accepted for API compatibility but
+    /// is not enforced on iOS. If precise timeout control is needed, implement a
+    /// client-side timer using DispatchQueue.main.asyncAfter and cancel the
+    /// authorization flow manually.
     @objc func create(_ call: CAPPluginCall) {
-        // TODO: Implement full passkey creation
-        //
-        // Steps:
-        // 1. Extract options from call:
-        //    - challenge (base64url string -> Data)
-        //    - rp.id (String) - relying party identifier
-        //    - user.id (base64url string -> Data)
-        //    - user.name (String)
-        //
-        // 2. Create the credential provider:
-        //    let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
-        //        relyingPartyIdentifier: rpId
-        //    )
-        //
-        // 3. Create the registration request:
-        //    let request = provider.createCredentialRegistrationRequest(
-        //        challenge: challengeData,
-        //        name: userName,
-        //        userID: userIdData
-        //    )
-        //
-        // 4. Configure authenticator selection (if provided):
-        //    - authenticatorAttachment -> request.attestationPreference
-        //    - userVerification -> request.userVerificationPreference
-        //
-        // 5. Create and present the authorization controller:
-        //    let controller = ASAuthorizationController(authorizationRequests: [request])
-        //    controller.delegate = self
-        //    controller.presentationContextProvider = self
-        //    controller.performRequests()
-        //
-        // 6. Handle the result in delegate methods (see below)
-
+        // Extract and validate required parameters
         guard let challengeB64 = call.getString("challenge") else {
             call.reject("Missing required parameter: challenge", "invalidRequest")
             return
@@ -96,63 +71,63 @@ public class PasskeysPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        guard let challengeData = base64UrlDecode(challengeB64),
-              let userIdData = base64UrlDecode(userIdB64) else {
-            call.reject("Invalid base64url encoding", "invalidRequest")
+        guard let challengeData = base64UrlDecode(challengeB64) else {
+            call.reject("Invalid base64url encoding for challenge", "invalidRequest")
             return
         }
 
-        // TODO: Complete implementation
-        // For now, return a placeholder error
-        call.reject(
-            "Passkey creation not yet implemented. See TODOs in PasskeysPlugin.swift",
-            "notSupported",
-            nil,
-            [
-                "rpId": rpId,
-                "userName": userName,
-                "challengeLength": challengeData.count,
-                "userIdLength": userIdData.count
-            ]
+        guard let userIdData = base64UrlDecode(userIdB64) else {
+            call.reject("Invalid base64url encoding for user.id", "invalidRequest")
+            return
+        }
+
+        // Create the credential provider
+        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
+            relyingPartyIdentifier: rpId
         )
+
+        // Create the registration request
+        let request = provider.createCredentialRegistrationRequest(
+            challenge: challengeData,
+            name: userName,
+            userID: userIdData
+        )
+
+        // Handle optional authenticatorSelection preferences
+        if let authenticatorSelection = call.getObject("authenticatorSelection") {
+            // Map userVerification preference
+            if let userVerification = authenticatorSelection["userVerification"] as? String {
+                switch userVerification {
+                case "required":
+                    request.userVerificationPreference = .required
+                case "preferred":
+                    request.userVerificationPreference = .preferred
+                case "discouraged":
+                    request.userVerificationPreference = .discouraged
+                default:
+                    request.userVerificationPreference = .required
+                }
+            }
+        }
+
+        // Store the call for async delegate callback
+        self.currentCall = call
+
+        // Create and configure the authorization controller
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        self.authController = controller
+
+        // Perform the request on main thread
+        DispatchQueue.main.async {
+            controller.performRequests()
+        }
     }
 
     /// Authenticate with an existing passkey
     @objc func get(_ call: CAPPluginCall) {
-        // TODO: Implement full passkey authentication
-        //
-        // Steps:
-        // 1. Extract options from call:
-        //    - challenge (base64url string -> Data)
-        //    - rpId (String)
-        //    - allowCredentials (optional array of credential descriptors)
-        //    - userVerification (optional)
-        //
-        // 2. Create the credential provider:
-        //    let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
-        //        relyingPartyIdentifier: rpId
-        //    )
-        //
-        // 3. Create the assertion request:
-        //    let request = provider.createCredentialAssertionRequest(
-        //        challenge: challengeData
-        //    )
-        //
-        // 4. If allowCredentials provided, set allowed credential IDs:
-        //    request.allowedCredentials = allowCredentials.map { descriptor in
-        //        ASAuthorizationPlatformPublicKeyCredentialDescriptor(
-        //            credentialID: descriptor.id
-        //        )
-        //    }
-        //
-        // 5. Create and present the authorization controller:
-        //    let controller = ASAuthorizationController(authorizationRequests: [request])
-        //    controller.delegate = self
-        //    controller.presentationContextProvider = self
-        //    controller.performRequests()
-        //
-        // 6. Handle the result in delegate methods
-
+        // Extract and validate required parameters
         guard let challengeB64 = call.getString("challenge") else {
             call.reject("Missing required parameter: challenge", "invalidRequest")
             return
@@ -168,17 +143,55 @@ public class PasskeysPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        // TODO: Complete implementation
-        // For now, return a placeholder error
-        call.reject(
-            "Passkey authentication not yet implemented. See TODOs in PasskeysPlugin.swift",
-            "notSupported",
-            nil,
-            [
-                "rpId": rpId,
-                "challengeLength": challengeData.count
-            ]
+        // Create the credential provider
+        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
+            relyingPartyIdentifier: rpId
         )
+
+        // Create the assertion request
+        let request = provider.createCredentialAssertionRequest(challenge: challengeData)
+
+        // Handle optional allowCredentials array
+        if let allowCredentials = call.getArray("allowCredentials") as? [[String: Any]] {
+            let descriptors: [ASAuthorizationPlatformPublicKeyCredentialDescriptor] = allowCredentials.compactMap { item in
+                guard let idB64 = item["id"] as? String,
+                      let idData = base64UrlDecode(idB64) else {
+                    return nil
+                }
+                return ASAuthorizationPlatformPublicKeyCredentialDescriptor(credentialID: idData)
+            }
+            if !descriptors.isEmpty {
+                request.allowedCredentials = descriptors
+            }
+        }
+
+        // Handle optional userVerification preference
+        if let userVerification = call.getString("userVerification") {
+            switch userVerification {
+            case "required":
+                request.userVerificationPreference = .required
+            case "preferred":
+                request.userVerificationPreference = .preferred
+            case "discouraged":
+                request.userVerificationPreference = .discouraged
+            default:
+                request.userVerificationPreference = .required
+            }
+        }
+
+        // Store the call for async delegate callback
+        self.currentCall = call
+
+        // Create and configure the authorization controller
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        self.authController = controller
+
+        // Perform the request on main thread
+        DispatchQueue.main.async {
+            controller.performRequests()
+        }
     }
 
     // MARK: - Helper Methods
@@ -238,43 +251,57 @@ extension PasskeysPlugin: ASAuthorizationControllerDelegate {
         controller: ASAuthorizationController,
         didCompleteWithAuthorization authorization: ASAuthorization
     ) {
-        // TODO: Handle successful authorization
-        //
-        // For registration (create):
-        // if let credential = authorization.credential as? ASAuthorizationPlatformPublicKeyCredentialRegistration {
-        //     let result: [String: Any] = [
-        //         "id": base64UrlEncode(credential.credentialID),
-        //         "rawId": base64UrlEncode(credential.credentialID),
-        //         "type": "public-key",
-        //         "response": [
-        //             "clientDataJSON": base64UrlEncode(credential.rawClientDataJSON),
-        //             "attestationObject": base64UrlEncode(credential.rawAttestationObject!)
-        //         ]
-        //     ]
-        //     currentCall?.resolve(result)
-        // }
-        //
-        // For authentication (get):
-        // if let credential = authorization.credential as? ASAuthorizationPlatformPublicKeyCredentialAssertion {
-        //     var response: [String: Any] = [
-        //         "clientDataJSON": base64UrlEncode(credential.rawClientDataJSON),
-        //         "authenticatorData": base64UrlEncode(credential.rawAuthenticatorData),
-        //         "signature": base64UrlEncode(credential.signature)
-        //     ]
-        //     if let userHandle = credential.userID {
-        //         response["userHandle"] = base64UrlEncode(userHandle)
-        //     }
-        //     let result: [String: Any] = [
-        //         "id": base64UrlEncode(credential.credentialID),
-        //         "rawId": base64UrlEncode(credential.credentialID),
-        //         "type": "public-key",
-        //         "response": response
-        //     ]
-        //     currentCall?.resolve(result)
-        // }
+        defer {
+            currentCall = nil
+            authController = nil
+        }
 
-        currentCall?.reject("Delegate handling not yet implemented", "notSupported")
-        currentCall = nil
+        // Handle passkey registration (create)
+        if let credential = authorization.credential as? ASAuthorizationPlatformPublicKeyCredentialRegistration {
+            guard let attestationObject = credential.rawAttestationObject else {
+                currentCall?.reject("Missing attestation object", "unknownError")
+                return
+            }
+
+            let result: [String: Any] = [
+                "id": base64UrlEncode(credential.credentialID),
+                "rawId": base64UrlEncode(credential.credentialID),
+                "type": "public-key",
+                "response": [
+                    "clientDataJSON": base64UrlEncode(credential.rawClientDataJSON),
+                    "attestationObject": base64UrlEncode(attestationObject)
+                ],
+                "authenticatorAttachment": "platform"
+            ]
+            currentCall?.resolve(result)
+            return
+        }
+
+        // Handle passkey authentication (get)
+        if let credential = authorization.credential as? ASAuthorizationPlatformPublicKeyCredentialAssertion {
+            var response: [String: Any] = [
+                "clientDataJSON": base64UrlEncode(credential.rawClientDataJSON),
+                "authenticatorData": base64UrlEncode(credential.rawAuthenticatorData),
+                "signature": base64UrlEncode(credential.signature)
+            ]
+
+            // Include userHandle if present
+            if let userHandle = credential.userID, !userHandle.isEmpty {
+                response["userHandle"] = base64UrlEncode(userHandle)
+            }
+
+            let result: [String: Any] = [
+                "id": base64UrlEncode(credential.credentialID),
+                "rawId": base64UrlEncode(credential.credentialID),
+                "type": "public-key",
+                "response": response
+            ]
+            currentCall?.resolve(result)
+            return
+        }
+
+        // Unknown credential type
+        currentCall?.reject("Unsupported credential type", "unknownError")
     }
 
     public func authorizationController(
@@ -284,6 +311,7 @@ extension PasskeysPlugin: ASAuthorizationControllerDelegate {
         let (code, message) = mapError(error)
         currentCall?.reject(message, code)
         currentCall = nil
+        authController = nil
     }
 }
 
@@ -294,7 +322,18 @@ extension PasskeysPlugin: ASAuthorizationControllerPresentationContextProviding 
 
     public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         // Return the main window for presenting the authorization UI
-        // TODO: Ensure this works correctly in all scenarios
-        return self.bridge?.webView?.window ?? UIWindow()
+        // Use the webView's window if available, fall back to key window
+        if let window = self.bridge?.webView?.window {
+            return window
+        }
+        
+        // Fallback: get the key window from the scene
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let keyWindow = windowScene.windows.first(where: { $0.isKeyWindow }) {
+            return keyWindow
+        }
+        
+        // Last resort fallback
+        return UIWindow()
     }
 }
