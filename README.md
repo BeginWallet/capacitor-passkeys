@@ -15,7 +15,7 @@ Provides a unified API for passkey creation and authentication across iOS, Andro
 ## Installation
 
 ```bash
-npm install capacitor-passkeys
+npm install @beginwallet/capacitor-passkeys
 npx cap sync
 ```
 
@@ -547,6 +547,65 @@ curl -I "https://yourdomain.com/.well-known/assetlinks.json"
 3. **Validate RP ID** - Ensure it matches your domain exactly
 4. **Store credentials securely** - Keep public keys and credential IDs in your database
 5. **Handle errors gracefully** - Don't leak information about existing credentials
+
+---
+
+## Publishing to npm
+
+### Prerequisites
+
+1. An npm account with publish access to `@beginwallet` scope
+2. Logged in via `npm login`
+3. All tests passing
+
+### Publishing Steps
+
+```bash
+# 1. Clone and install
+git clone https://github.com/BeginWallet/capacitor-passkeys.git
+cd capacitor-passkeys
+npm install
+
+# 2. Build the plugin
+npm run build
+
+# 3. Run verification (optional but recommended)
+npm run verify
+
+# 4. Update version in package.json
+npm version patch  # or minor/major
+
+# 5. Publish to npm
+npm publish --access public
+
+# 6. Push tags to GitHub
+git push origin main --tags
+```
+
+### Version Bump Guidelines
+
+- **patch** (0.0.x): Bug fixes, documentation updates
+- **minor** (0.x.0): New features, backward-compatible changes
+- **major** (x.0.0): Breaking changes, API modifications
+
+### First-Time Publish
+
+If this is the first publish of `@beginwallet/capacitor-passkeys`:
+
+```bash
+# Create the package on npm with public access
+npm publish --access public
+```
+
+### Verify Published Package
+
+```bash
+# Check it's available
+npm show @beginwallet/capacitor-passkeys
+
+# Test installation in a new project
+npm install @beginwallet/capacitor-passkeys
+```
 
 ---
 
